@@ -31,16 +31,19 @@ int in3 = 5;
 int in4 = 7;
 int enB = 6;
 
-
+char c;
 
 const int IR_RECEIVE_PIN = 8;
 
 
 
 
-#include <IRremote.hpp>
-#include <Arduino.h>
+#include <Servo.h>
+int pos = 0;
+Servo myservo;  
 
+#include <Arduino.h>
+#define SOIL_MOISTURE_PIN A0
 
 #define SERIAL_BAUD 9600
 
@@ -66,8 +69,12 @@ BME280I2C bme(settings);
 //////////////////////////////////////////////////////////////////
 void setup()
 {
-  Serial.begin(SERIAL_BAUD);
 
+   myservo.attach(9);  // attaches the servo on pin 9 to the Servo object
+
+  c = 0;
+  Serial.begin(SERIAL_BAUD);
+  pinMode(SOIL_MOISTURE_PIN, INPUT);
   while(!Serial) {} // Wait
 
   Wire.begin();
@@ -95,8 +102,6 @@ void setup()
   Serial.println("m\n***************************************");
 
 
-IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); //start the receiver
-
   pinMode(enA, OUTPUT);
   pinMode(in1, OUTPUT);
   pinMode(in2, OUTPUT);
@@ -108,78 +113,116 @@ IrReceiver.begin(IR_RECEIVE_PIN, ENABLE_LED_FEEDBACK); //start the receiver
 //////////////////////////////////////////////////////////////////
 void loop()
 {
+    int soilMoisture = analogRead(SOIL_MOISTURE_PIN);
 
-    // put your main code here, to run repeatedly:
-   if (IrReceiver.decode())
-   {
-    Serial.println(IrReceiver.decodedIRData.decodedRawData, HEX);
-    IrReceiver.printIRResultShort(&Serial); //optional use new print version
-    switch(IrReceiver.decodedIRData.decodedRawData) {
-      case 0xBF40FF00: //Keypad button 5
-      Serial.println("5");
-      //drive
-  digitalWrite(in1, HIGH); //move forward for half a second
-  digitalWrite(in2, LOW);
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, HIGH);
-  digitalWrite(enA, 100);
-  digitalWrite(enB, 100);
-  delay(1500);
+  int moisturePercentage = map(soilMoisture, 320, 1023, 0, 100);
 
-  digitalWrite(in1, LOW); //stop for half a second
-  digitalWrite(in2, LOW);
-  digitalWrite(in3, LOW);
-  digitalWrite(in4, LOW);
-  digitalWrite(enA, 100);
-  digitalWrite(enB, 100);
-  delay(1500);
-break;
-      case 0xE916FF00: //Keypad button *
-      Serial.println("*");
-      
-      printBME280Data(&Serial);
-      break;
-      case 0xB946FF00:
-            Serial.println("2");
-      //drive
+
+  if (Serial.available()) 
+  {
+   c = Serial.read();
+
+  }
+    if (c == '1') 
+  {
+  printBME280Data(&Serial);
+  Serial.print("Ground water: ");
+  Serial.print(moisturePercentage);
+  Serial.println("%");
+  c = 0;
+  }
+  else   if (c == 'p') 
+  {
+    // Start rotating servo in one direction (extend)
+    Serial.println("Extending servo...");
+    myservo.write(180);  // Rotate servo in one direction
+    delay(1000);         // Run for 2 seconds (adjust as needed)
+    myservo.write(90);   // Stop the servo
+    Serial.println("Servo extended.");
+    c = 0;  // Reset command
+  }
+  else  if (c == 'l') 
+  {
+    // Start rotating servo in the opposite direction (retract)
+    Serial.println("Retracting servo...");
+    myservo.write(0);    // Rotate servo in the opposite direction
+    delay(1000);         // Run for 2 seconds (adjust as needed)
+    myservo.write(90);   // Stop the servo
+    Serial.println("Servo retracted.");
+    c = 0;  // Reset command
+  }
+    else  if (c == 'w') 
+  {
+    
   digitalWrite(in1, LOW); //move forward for half a second
   digitalWrite(in2, HIGH);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
   digitalWrite(enA, 100);
   digitalWrite(enB, 100);
-  delay(1500);
-
-  digitalWrite(in1, LOW); //stop for half a second
+  delay(1000);
+    digitalWrite(in1, LOW); //move forward for half a second
   digitalWrite(in2, LOW);
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
   digitalWrite(enA, 100);
   digitalWrite(enB, 100);
-  delay(1500);
-  break;
-
-  case 0xBC43FF00:
+  c = 0;
+  }
+    else  if (c == 's') 
+  {
+    
+  digitalWrite(in1, HIGH); //move forward for half a second
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
+  digitalWrite(enA, 100);
+  digitalWrite(enB, 100);
+  delay(1000);
+    digitalWrite(in1, LOW); //move forward for half a second
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
+  digitalWrite(enA, 100);
+  digitalWrite(enB, 100);
+  c = 0;
+  }
+      else  if (c == 'a') 
+  {
+    
   digitalWrite(in1, HIGH); //move forward for half a second
   digitalWrite(in2, LOW);
   digitalWrite(in3, HIGH);
   digitalWrite(in4, LOW);
   digitalWrite(enA, 100);
   digitalWrite(enB, 100);
-  delay(1500);
-
-  digitalWrite(in1, LOW); //stop for half a second
+  delay(5000);
+  digitalWrite(in1, LOW); //move forward for half a second
   digitalWrite(in2, LOW);
   digitalWrite(in3, LOW);
   digitalWrite(in4, LOW);
   digitalWrite(enA, 100);
   digitalWrite(enB, 100);
-  delay(1500);
-  break;
-    }
-    IrReceiver.resume(); //Enable more receiving of next
-
-   }
+  c = 0;
+  }
+        else  if (c == 'd') 
+  {
+    
+  digitalWrite(in1, LOW); //move forward for half a second
+  digitalWrite(in2, HIGH);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, HIGH);
+  digitalWrite(enA, 100);
+  digitalWrite(enB, 100);
+  delay(5000);
+  digitalWrite(in1, LOW); //move forward for half a second
+  digitalWrite(in2, LOW);
+  digitalWrite(in3, LOW);
+  digitalWrite(in4, LOW);
+  digitalWrite(enA, 100);
+  digitalWrite(enB, 100);
+  c = 0;
+  }
 }
 
 //////////////////////////////////////////////////////////////////
